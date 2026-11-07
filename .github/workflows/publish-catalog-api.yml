@@ -1,0 +1,35 @@
+# Varian cadangan: tulis katalog lewat Git Data API langsung dari runner
+# (tanpa git sama sekali). Dipakai bila metode git bermasalah.
+# Sama: input `entry` (JSON minified), concurrency group yang sama.
+name: Publish Catalog (API)
+
+on:
+  workflow_dispatch:
+    inputs:
+      entry:
+        description: 'Entri judul lengkap (JSON minified)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: catalog-write
+  cancel-in-progress: false
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout skrip saja
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+          fetch-depth: 1
+      - name: Append entri via API
+        env:
+          ENTRY_JSON: ${{ inputs.entry }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/catalog_write.py --method api
