@@ -1,0 +1,33 @@
+# Workflow tulis katalog via GitHub Actions (pengganti tulis lewat surrogate).
+# Dipanggil oleh title_pipeline.append_catalog (dispatch + tunggu run + verifikasi).
+# Entri lengkap dikirim sebagai input `entry` (JSON minified, maks ~19 KB nyata).
+# Serialisasi antar-run dijamin concurrency group; tiap run baca katalog segar.
+name: Publish Catalog
+
+on:
+  workflow_dispatch:
+    inputs:
+      entry:
+        description: 'Entri judul lengkap (JSON minified)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: catalog-write
+  cancel-in-progress: false
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Append entri dan push
+        env:
+          ENTRY_JSON: ${{ inputs.entry }}
+        run: python3 scripts/catalog_write.py --method git
